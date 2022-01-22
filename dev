@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+function start() {
+    docker-compose up
+}
+
+function stop() {
+    docker-compose down
+}
+
+function test() {
+    if (( $# == 0 )) 
+    then
+        for file in `find . -name '*.tests.php' -print` 
+        do            
+            file=${file#./}
+            test_one $file
+        done
+    else
+        for file in "$@"
+        do
+            test_one "$file"
+        done
+    fi
+}
+
+function test_one() {
+    file="$1"
+    echo "====> $file"
+    docker-compose exec -w /var/mini-wiki php ./phpunit --verbose "$file"
+    echo ""
+    echo ""
+}
+
+
+function php() {
+    if [ "$1" == "-a" ]
+    then
+        docker-compose exec -w /var/mini-wiki php php "$@"
+    else
+        docker-compose exec -w /var/mini-wiki -T php php "$@"
+    fi
+}
+
+function launch() {
+    open "http://localhost:9081/"
+}
+
+
+
+function usage() {
+    name=`basename $0`
+    
+    echo "USAGE: $name COMMAND [ARGS...]"
+    echo ""
+    echo "Commands:"
+    echo "   start   Starts the VM"
+    echo "   stop    Stops the VM"
+    echo "   test    Runs the specified (or all, if none specified) tests in separate processes"
+    echo "   php     Runs the parameters as a PHP script"
+}
+
+
+case $1 in
+"start"    ) start          ;;
+"stop"     ) stop           ;;
+"test"     ) test "${@:2}"  ;;
+"php"      ) php "${@:2}"   ;;
+*          ) usage          ;;	
+esac
+
